@@ -1,6 +1,8 @@
-export abstract class BaseBlocker {
+import type { IBlocker } from "../../types/types";
+
+export abstract class BaseBlocker implements IBlocker{
   protected observer: MutationObserver | null = null;
-  protected blockedCount = 0;
+  protected blockedCount: number = 0;
 
   abstract getPlatformName(): string;
   abstract getBlockedSelectors(): string[];
@@ -27,8 +29,8 @@ export abstract class BaseBlocker {
   }
 
   protected checkAndRedirect(): void {
-    const currentUrl = window.location.href;
-    const patterns = this.getRedirectPatterns();
+    const currentUrl: string = window.location.href;
+    const patterns: RegExp[] = this.getRedirectPatterns();
     
     for (const pattern of patterns) {
       if (pattern.test(currentUrl)) {
