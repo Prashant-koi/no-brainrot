@@ -15,6 +15,9 @@ export abstract class BaseBlocker {
     
     // this will block the elements on page
     this.blockElements();
+
+    //custom blockign logiv
+    this.customBlockLogic();
     
     // this will watch for dynamically loaded content
     this.startObserver();
@@ -38,31 +41,65 @@ export abstract class BaseBlocker {
 
   protected blockElements(): void {
     const selectors = this.getBlockedSelectors();
+    let blocked = 0;
+    
     selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        this.hideElement(element as HTMLElement);
-      });
+      try {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          if (this.hideElement(element as HTMLElement)) {
+            blocked++;
+          }
+        });
+      } catch (e) {
+        console.error(`[No Brainrot] Error with selector "${selector}":`, e);
+      }
     });
-  }
-
-  protected hideElement(element: HTMLElement): void {
-    if (!element.hasAttribute('data-brainrot-blocked')) {
-      element.style.display = 'none';
-      element.setAttribute('data-brainrot-blocked', 'true');
-      this.blockedCount++;
+    
+    if (blocked > 0) {
+      console.log(`[No Brainrot] Blocked ${blocked} elements`);
     }
   }
 
-  protected startObserver(): void {
-    this.observer = new MutationObserver(() => {
-      this.blockElements();
-    });
+  protected hideElement(element: HTMLElement): boolean {
+    if (!element.hasAttribute('data-brainrot-blocked')) {
+      element.style.display = 'none';
+      element.style.visibility = 'hidden';
+      element.style.height = '0';
+      element.style.overflow = 'hidden';
+      element.setAttribute('data-brainrot-blocked', 'true');
+      this.blockedCount++;
+      return true;
+    }
+    return false;
+  }
 
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+  // We will overide this in platform-specific blockers 
+  protected customBlockLogic(): void {
+    
+  }
+
+  protected startObserver(): void {
+    const startObserving = () => {
+      if (document.body) {
+        this.observer = new MutationObserver(() => {
+          this.blockElements();
+          this.customBlockLogic();
+        });
+
+        this.observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+        
+        console.log(`[No Brainrot] Observer started for ${this.getPlatformName()}`);
+      } else {
+        // Body doesn't exist yet
+        setTimeout(startObserving, 100);
+      }
+    };
+
+    startObserving();
   }
 
   protected watchNavigation(): void {
