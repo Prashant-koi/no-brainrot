@@ -1,4 +1,5 @@
 import { YouTubeBlocker } from './blockers/YoutubeBlocker';
+import { InstagramBlocker } from './blockers/InstagramBlocker';
 import { BaseBlocker } from './blockers/BaseBlocker';
 
 console.log('[No Brainrot] Content script loaded on:', window.location.href);
@@ -14,7 +15,7 @@ function initializeBlocker(): void {
     blocker = new YouTubeBlocker();
   } else if (hostname.includes('instagram.com')) {
     console.log('[No Brainrot] Creating Instagram blocker');
-    // blocker = new InstagramBlocker();
+    blocker = new InstagramBlocker();
   } else if (hostname.includes('facebook.com')) {
     console.log('[No Brainrot] Creating Facebook blocker');
     // blocker = new FacebookBlocker();
