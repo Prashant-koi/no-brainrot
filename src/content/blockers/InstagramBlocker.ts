@@ -18,7 +18,7 @@ export class InstagramBlocker extends BaseBlocker {
             //reels in Home
             'article',
 
-            'div[class*="x11lhmoz"]', // Instagram's obfuscated class names
+            'div[class*="x11lhmoz"]',           // Instagram's obfuscated class names
             // 'div[class*="x1n2onr6"]',
             
         ];
@@ -27,8 +27,8 @@ export class InstagramBlocker extends BaseBlocker {
     getRedirectPatterns(): RegExp[] {
         return [
             /instagram\.com\/reels?\//,
-            /instagram\.com\/p?\//,
-            // /instagram\.com\/stories?\//, //uncomment if wanna redirect from stories
+            // /instagram\.com\/p?\//,          //will redirect you from reels sent by your friends personally I will comment this out but you can uncomment it if you want to
+            // /instagram\.com\/stories?\//,    //uncomment if wanna redirect from stories
         ];
     }
 
