@@ -4,3 +4,5 @@ No Brainrot is a browser extension that will block all shortform content from yo
 ## Currently Blocked Websites
 -Youtube shorts (check ./src/blockers/YoutubeBlocker.ts to see)
 -Instagram Reels (check ./src/blockers/InstagramBlocker.ts to see)
+-Facebook Reels (check ./src/blockers/FacebookBlocker.ts to see)
+-Tiktok (check ./src/blockers/TiktokBlocker.ts to see)
