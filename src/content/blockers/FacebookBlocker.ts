@@ -26,7 +26,7 @@ export class FacebookBlocker extends BaseBlocker {
         return 'https://www.facebook.com';
     }
 
-    /* while we don't need an implementation customBlockLogic for instagram, I am gonna keep it here 
+    /* while we don't need an implementation customBlockLogic for facebook, I am gonna keep it here 
     just in case things change in the future
     */
     // protected customBlockLogic(): void {

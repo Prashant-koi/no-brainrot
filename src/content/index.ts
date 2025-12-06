@@ -1,6 +1,7 @@
 import { YouTubeBlocker } from './blockers/YoutubeBlocker';
 import { InstagramBlocker } from './blockers/InstagramBlocker';
 import { FacebookBlocker } from './blockers/FacebookBlocker';
+import { TiktokBlocker } from './blockers/TiktokBlocker';
 import { BaseBlocker } from './blockers/BaseBlocker';
 
 
@@ -23,7 +24,7 @@ function initializeBlocker(): void {
     blocker = new FacebookBlocker();
   } else if (hostname.includes('tiktok.com')) {
     console.log('[No Brainrot] Creating TikTok blocker');
-    // blocker = new TikTokBlocker();
+    blocker = new TiktokBlocker();
   }
 
   if (blocker) {
