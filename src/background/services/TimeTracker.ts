@@ -44,6 +44,11 @@ export class TimeTracker {
 
         const platform = this.getPlatformFromUrl(tab.url);
 
+        if (platform == 'Other') {
+            console.log('[No Brainrot][Time Tracker]Skipping non-listed site')
+            return;
+        }
+
         //new session of counting
         this.currentEntry = {
             platform,
