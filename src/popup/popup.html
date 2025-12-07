@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      margin: 0;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0 0 10px 0;
+    }
+    .emoji {
+      font-size: 48px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .stats {
+      margin-top: 20px;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .platform-name {
+      font-weight: 500;
+    }
+    .time {
+      color: #4ade80;
+      font-weight: 600;
+    }
+    .total {
+      margin-top: 16px;
+      padding: 16px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      border: 2px solid #4ade80;
+      text-align: center;
+    }
+    .total-label {
+      color: #888;
+      font-size: 14px;
+    }
+    .total-time {
+      font-size: 32px;
+      font-weight: 700;
+      color: #4ade80;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>No Brainrot</h1>
+  
+  <div class="stats">
+    <h2 style="font-size: 18px; margin-bottom: 12px;">Today's Screen Time</h2>
+    <div id="stats-container">
+      <p style="color: #888;">Loading...</p>
+    </div>
+    
+    <div class="total" id="total-container" style="display: none;">
+      <div class="total-label">Total Social Media Time</div>
+      <div class="total-time" id="total-time">0m</div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

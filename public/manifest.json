@@ -3,7 +3,10 @@
   "name": "No Brainrot",
   "version": "1.0.0",
   "description": "Block short-form content (Shorts, Reels, Stories) across social media platforms",
-  "permissions": ["storage"],
+  "permissions": ["storage","tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.instagram.com/*",
