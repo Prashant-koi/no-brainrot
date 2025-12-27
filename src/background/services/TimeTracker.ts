@@ -4,6 +4,7 @@ import { PlatformName, TimeEntry, DailyStats } from "../../types/types"
 export class TimeTracker {
     private currentEntry: TimeEntry | null = null;
     private activeTabId: number | null = null;
+    private saveInterval: number | null = null;
 
     constructor() {
         this.setupListeners();
@@ -56,10 +57,50 @@ export class TimeTracker {
         }
         this.activeTabId =tabId;
 
+        // we will be periodically saving the time instead of on just tabswitches
+        this.startPeriodicSave();
+
         console.log(`Started tracking time of ${platform}`);
     }
 
+    private startPeriodicSave(): void {
+       
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+        }
+
+        // We will be saving current session every 60 seconds
+        this.saveInterval = setInterval(() => {
+            this.saveCurrentSession();
+        }, 60000) as unknown as number;
+    }
+
+    private saveCurrentSession(): void {
+        if (!this.currentEntry) return;
+
+        const now = Date.now();
+        const duration = now - this.currentEntry.startTime;
+
+        const entry: TimeEntry = {
+            platform: this.currentEntry.platform,
+            startTime: this.currentEntry.startTime,
+            endTime: now,
+            duration: duration,
+        };
+
+        console.log(`Saving ongoing session: ${entry.platform}, Duration: ${Math.round(duration / 1000)}s`);
+
+        this.saveEntry(entry);
+
+        this.currentEntry.startTime = now; //restarting time
+    }
+
     private endCurrentSession(): void {
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+
         if (!this.currentEntry) return;
 
         const endTime = Date.now();
@@ -68,7 +109,7 @@ export class TimeTracker {
         this.currentEntry.endTime = endTime;
         this.currentEntry.duration = duration;
 
-        console.log(`Ended session: ${this.currentEntry.platform},  Duration: ${this.currentEntry.duration}`);
+        console.log(`Ended session: ${this.currentEntry.platform}, Duration: ${Math.round(duration / 1000)}s`);
 
         //saving the data
         this.saveEntry(this.currentEntry);
