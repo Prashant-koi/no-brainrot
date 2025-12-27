@@ -1,5 +1,7 @@
 import { PlatformName, TimeEntry, DailyStats, TrackedTab } from "../../types/types"
 
+//code citation thanks to: https://github.com/Stigmatoz/web-activity-time-tracker/blob/master/src/tracker.ts
+
 
 const TRACK_INTERVAL = 1000; // Tracking every second
 const SAVE_INTERVAL = 60000; // Saving every 60 seconds
