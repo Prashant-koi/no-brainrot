@@ -9,3 +9,12 @@ No Brainrot is a browser extension that will block all shortform content from yo
 
 ## Social Media Time tracking
 The browser extension will log the time you spend on certain social media webistes(YT, IG, LinkedIn stuff), It will not track what you are doing just that you are using them!
+
+## Run and Build
+```
+#watch the errors with terminal
+npm run watch
+
+#Just build the dist
+npm run build
+```
