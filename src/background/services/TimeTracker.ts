@@ -1,122 +1,199 @@
-import { PlatformName, TimeEntry, DailyStats } from "../../types/types"
+import { PlatformName, TimeEntry, DailyStats, TrackedTab } from "../../types/types"
 
+
+const TRACK_INTERVAL = 1000; // Tracking every second
+const SAVE_INTERVAL = 60000; // Saving every 60 seconds
+const IDLE_THRESHOLD = 60; // Consider idle after 60 seconds
 
 export class TimeTracker {
-    private currentEntry: TimeEntry | null = null;
-    private activeTabId: number | null = null;
+    private trackedTabs: Map<number, TrackedTab> = new Map();
+    private trackInterval: number | null = null;
     private saveInterval: number | null = null;
+
+
+    
 
     constructor() {
         this.setupListeners();
+        this.startContinuousTracking();
     }
+
+
+
 
     private setupListeners(): void {
-        //when tab becomes active
-        chrome.tabs.onActivated.addListener((activeInfo) =>{
-            this.handleTabChange(activeInfo.tabId);
-        });
-
-        // when URL changes
-        chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.url && tab.active) {
-            this.handleTabChange(tabId);
-        }
-        });
-
-        //when window focus changes
-        chrome.windows.onFocusChanged.addListener((windowId) => {
-            if (windowId == chrome.windows.WINDOW_ID_NONE) {
-                this.endCurrentSession();
-            } else {
-                chrome.tabs.query({active: true, windowId}, (tabs) => {
-                    if (tabs[0]) {
-                        this.handleTabChange(tabs[0].id!);
-                    }
-                })
+        // When URL changes
+        chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+            if (changeInfo.url) {
+                this.checkAndUpdateTab(tabId);
             }
-        })
+        });
+
+        // When tab is closed
+        chrome.tabs.onRemoved.addListener((tabId) => {
+            this.endTabSession(tabId);
+        });
     }
 
-    private async handleTabChange(tabId: number): Promise<void> {
-        this.endCurrentSession(); //end the prev session
 
-        const tab = await chrome.tabs.get(tabId);
-        if (!tab.url) return;
 
-        const platform = this.getPlatformFromUrl(tab.url);
 
-        if (platform == 'Other') {
-            console.log('[No Brainrot][Time Tracker]Skipping non-listed site')
-            return;
+
+    private startContinuousTracking(): void {
+        if (this.trackInterval) {
+            clearInterval(this.trackInterval);
         }
-
-        //new session of counting
-        this.currentEntry = {
-            platform,
-            startTime: Date.now(),
-        }
-        this.activeTabId =tabId;
-
-        // we will be periodically saving the time instead of on just tabswitches
-        this.startPeriodicSave();
-
-        console.log(`Started tracking time of ${platform}`);
-    }
-
-    private startPeriodicSave(): void {
-       
         if (this.saveInterval) {
             clearInterval(this.saveInterval);
         }
 
-        // We will be saving current session every 60 seconds
+        // every second
+        this.trackInterval = setInterval(() => {
+            this.trackCurrentState();
+        }, TRACK_INTERVAL) as unknown as number;
+
+        // every 60 seconds
         this.saveInterval = setInterval(() => {
-            this.saveCurrentSession();
-        }, 60000) as unknown as number;
+            this.saveAllCurrentSessions();
+        }, SAVE_INTERVAL) as unknown as number;
+
+        console.log('[TimeTracker] Continuous tracking started');
     }
 
-    private saveCurrentSession(): void {
-        if (!this.currentEntry) return;
 
-        const now = Date.now();
-        const duration = now - this.currentEntry.startTime;
 
-        const entry: TimeEntry = {
-            platform: this.currentEntry.platform,
-            startTime: this.currentEntry.startTime,
-            endTime: now,
-            duration: duration,
-        };
 
-        console.log(`Saving ongoing session: ${entry.platform}, Duration: ${Math.round(duration / 1000)}s`);
+    private async trackCurrentState(): Promise<void> {
+        try {
+            const window = await chrome.windows.getLastFocused({ populate: true });
+            
+            if (!window.focused) {
+                this.pauseAllSessions();
+                return;
+            }
 
-        this.saveEntry(entry);
+            const activeTab = window.tabs?.find(t => t.active);
+            if (!activeTab?.url) {
+                this.pauseAllSessions();
+                return;
+            }
 
-        this.currentEntry.startTime = now; //restarting time
-    }
+            const idleState = await chrome.idle.queryState(IDLE_THRESHOLD);
+            const platform = this.getPlatformFromUrl(activeTab.url);
+            const isTrackedPlatform = platform !== 'Other';
 
-    private endCurrentSession(): void {
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
+            const shouldTrack = isTrackedPlatform && (idleState === 'active' || activeTab.audible);
+
+            if (shouldTrack) {
+                const existing = this.trackedTabs.get(activeTab.id!);
+                
+                if (!existing || existing.platform !== platform) {
+                    if (existing) {
+                        this.endTabSession(activeTab.id!);
+                    }
+                    this.trackedTabs.set(activeTab.id!, {
+                        tabId: activeTab.id!,
+                        platform,
+                        startTime: Date.now(),
+                    });
+                    console.log(`Started tracking ${platform} (tab ${activeTab.id})`);
+                }
+                
+                for (const [tabId, tracked] of this.trackedTabs.entries()) {
+                    if (tabId !== activeTab.id) {
+                        this.endTabSession(tabId);
+                    }
+                }
+            } else {
+                this.pauseAllSessions();
+            }
+        } catch (error) {
+            console.error('[TimeTracker] Error in trackCurrentState:', error);
         }
+    }
 
-        if (!this.currentEntry) return;
+
+
+
+    private pauseAllSessions(): void {
+        const tabIds = Array.from(this.trackedTabs.keys());
+        tabIds.forEach(tabId => this.endTabSession(tabId));
+    }
+
+
+
+
+    private async checkAndUpdateTab(tabId: number): Promise<void> {
+        try {
+            const tab = await chrome.tabs.get(tabId);
+            if (!tab.url) return;
+
+            const platform = this.getPlatformFromUrl(tab.url);
+            const existing = this.trackedTabs.get(tabId);
+
+            if (existing && existing.platform !== platform) {
+                this.endTabSession(tabId);
+            }
+        } catch (error) {
+            // Tab might be closed
+            this.endTabSession(tabId);
+        }
+    }
+
+
+
+
+    private saveAllCurrentSessions(): void {
+        const now = Date.now();
+
+        for (const [tabId, tracked] of this.trackedTabs.entries()) {
+            const duration = now - tracked.startTime;
+
+            if (duration < 1000) continue; 
+
+            const entry: TimeEntry = {
+                platform: tracked.platform,
+                startTime: tracked.startTime,
+                endTime: now,
+                duration: duration,
+            };
+
+            console.log(`Saving session: ${entry.platform} (tab ${tabId}), Duration: ${Math.round(duration / 1000)}s`);
+
+            this.saveEntry(entry);
+
+            
+            tracked.startTime = now;
+        }
+    }
+
+
+    
+
+    private endTabSession(tabId: number): void {
+        const tracked = this.trackedTabs.get(tabId);
+        if (!tracked) return;
 
         const endTime = Date.now();
-        const duration = endTime - this.currentEntry.startTime;
+        const duration = endTime - tracked.startTime;
 
-        this.currentEntry.endTime = endTime;
-        this.currentEntry.duration = duration;
+        if (duration >= 1000) { 
+            const entry: TimeEntry = {
+                platform: tracked.platform,
+                startTime: tracked.startTime,
+                endTime: endTime,
+                duration: duration,
+            };
 
-        console.log(`Ended session: ${this.currentEntry.platform}, Duration: ${Math.round(duration / 1000)}s`);
+            console.log(`Ended session: ${entry.platform} (tab ${tabId}), Duration: ${Math.round(duration / 1000)}s`);
+            this.saveEntry(entry);
+        }
 
-        //saving the data
-        this.saveEntry(this.currentEntry);
-        
-        this.currentEntry = null;
-        this.activeTabId = null;
+        this.trackedTabs.delete(tabId);
     }
+
+
+
 
     private getPlatformFromUrl (url: string): PlatformName | 'Other' {
         try {
@@ -132,6 +209,9 @@ export class TimeTracker {
             return 'Other';
         }
     }
+
+
+
 
 
     /* 
@@ -162,6 +242,9 @@ export class TimeTracker {
         console.log(`Saved entry for ${platform}: ${Math.round(entry.duration || 0) / 1000}s`);
     }
 
+
+
+
     public async getTodayStats(): Promise<DailyStats | null> {
         const today = new Date().toISOString().split('T')[0];
         const storageKey = `stats:${today}`;
@@ -169,11 +252,17 @@ export class TimeTracker {
         return result[storageKey] || null;
     }
 
+
+
+
     public async getStatsForDate(date: string): Promise<DailyStats | null> {
         const storageKey = `stats${date}`;
         const result = await chrome.storage.local.get(storageKey) as Record<string, DailyStats>;
         return result[storageKey] || null;
     }
+
+
+
 
     public async getAllStats(): Promise<DailyStats[] | null> {
         const allData = await chrome.storage.local.get(null) as Record<string, DailyStats>;
@@ -188,6 +277,9 @@ export class TimeTracker {
         //newest date first
         return stats.sort((a,b) => b.date.localeCompare(a.date));
     }
+
+
+
 
 
 }

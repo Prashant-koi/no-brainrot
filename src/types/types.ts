@@ -30,4 +30,11 @@ export interface DailyStats {
     totalByPlatform: Record<string, number>;
 }
 
+// interface to track multiple tabs at once, but only if they're playing audio
+export interface TrackedTab {
+    tabId: number;
+    platform: PlatformName;
+    startTime: number;
+}
+
 //time tracker end
