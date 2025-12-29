@@ -11,6 +11,7 @@ export class TimeTracker {
     private trackedTabs: Map<number, TrackedTab> = new Map();
     private trackInterval: number | null = null;
     private saveInterval: number | null = null;
+    private saveQueue: Promise<void> = Promise.resolve();
 
 
     
@@ -254,28 +255,31 @@ export class TimeTracker {
     */
 
     private async saveEntry (entry: TimeEntry): Promise<void> {
-        const today = new Date().toISOString().split('T')[0];
-        const storageKey = `stats:${today}`;
+        //race condition
+        this.saveQueue = this.saveQueue.then(async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `stats:${today}`;
 
-        //get existing stuff for today
-        const result= await chrome.storage.local.get(storageKey) as Record<string, DailyStats>;
-        const dailyStats: DailyStats = result[storageKey] || {
-            date : today,
-            entries: [],
-            totalByPlatform: {} ,
-        }
+            //get existing stuff for today
+            const result= await chrome.storage.local.get(storageKey) as Record<string, DailyStats>;
+            const dailyStats: DailyStats = result[storageKey] || {
+                date : today,
+                entries: [],
+                totalByPlatform: {} ,
+            }
 
-        dailyStats.entries.push(entry);
+            dailyStats.entries.push(entry);
 
-        //update total
-        const platform = entry.platform;
-        dailyStats.totalByPlatform[platform] = (dailyStats.totalByPlatform[platform] || 0) + (entry.duration || 0);
+            //update total
+            const platform = entry.platform;
+            dailyStats.totalByPlatform[platform] = (dailyStats.totalByPlatform[platform] || 0) + (entry.duration || 0);
 
-        await chrome.storage.local.set({ [storageKey]: dailyStats});
+            await chrome.storage.local.set({ [storageKey]: dailyStats});
 
-        // console.log(`Saved entry for ${platform}: ${Math.round(entry.duration || 0) / 1000}s`);
-        console.log(`✅ SAVED to DB: ${platform} +${Math.round(entry.duration || 0) / 1000}s (Total: ${Math.round(dailyStats.totalByPlatform[platform] / 1000)}s)`);
+            console.log(`✅ SAVED to DB: ${platform} +${Math.round(entry.duration || 0) / 1000}s (Total: ${Math.round(dailyStats.totalByPlatform[platform] / 1000)}s)`);
+        });
 
+        await this.saveQueue;
     }
 
 
