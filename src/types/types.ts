@@ -15,7 +15,7 @@ export type BlockerConfig = {
 }
 
 //for Time tracker
-export type PlatformName = 'YouTube' | 'Facebook' | 'Instagram' | 'TikTok';
+export type PlatformName = 'YouTube' | 'Facebook' | 'Instagram' | 'TikTok' | 'YoutubeMusic';
 
 export interface TimeEntry {
     platform: PlatformName | 'Other';

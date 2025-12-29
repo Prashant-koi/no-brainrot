@@ -66,7 +66,8 @@ export class TimeTracker {
 
 
     private async trackCurrentState(): Promise<void> {
-        try {
+        try 
+        {
             const window = await chrome.windows.getLastFocused({ populate: true });
             
             if (!window.focused) {
@@ -81,33 +82,63 @@ export class TimeTracker {
             }
 
             const idleState = await chrome.idle.queryState(IDLE_THRESHOLD);
-            const platform = this.getPlatformFromUrl(activeTab.url);
-            const isTrackedPlatform = platform !== 'Other';
+            
+            const tabsToTrack = new Set<number>();
 
-            const shouldTrack = isTrackedPlatform && (idleState === 'active' || activeTab.audible);
-
-            if (shouldTrack) {
-                const existing = this.trackedTabs.get(activeTab.id!);
+            const activePlatform = this.getPlatformFromUrl(activeTab.url);
+            const isActiveTracked = activePlatform !== 'Other';
+            
+            if (isActiveTracked && idleState === 'active') {
+                tabsToTrack.add(activeTab.id!);
                 
-                if (!existing || existing.platform !== platform) {
+                const existing = this.trackedTabs.get(activeTab.id!);
+                if (!existing || existing.platform !== activePlatform) {
                     if (existing) {
                         this.endTabSession(activeTab.id!);
                     }
                     this.trackedTabs.set(activeTab.id!, {
                         tabId: activeTab.id!,
-                        platform,
+                        platform: activePlatform,
                         startTime: Date.now(),
                     });
-                    console.log(`Started tracking ${platform} (tab ${activeTab.id})`);
+                    console.log(`Started tracking ${activePlatform} (tab ${activeTab.id})`);
                 }
-                
-                for (const [tabId, tracked] of this.trackedTabs.entries()) {
-                    if (tabId !== activeTab.id) {
+            }
+
+            // tabs playing audio
+            if (window.tabs) {
+                for (const tab of window.tabs) {
+                    
+                    if (tab.id === activeTab.id) continue;
+                    
+                    if (tab.audible && tab.url && tab.id) {
+                        const platform = this.getPlatformFromUrl(tab.url);
+                        if (platform !== 'Other') {
+                            tabsToTrack.add(tab.id);
+                            
+                            const existing = this.trackedTabs.get(tab.id);
+                            if (!existing || existing.platform !== platform) {
+                                if (existing) {
+                                    this.endTabSession(tab.id);
+                            }
+                            this.trackedTabs.set(tab.id, {
+                                tabId: tab.id,
+                                platform: platform,
+                                startTime: Date.now(),
+                            });
+                            console.log(`Started tracking ${platform} (tab ${tab.id}) - playing audio`);
+                            }
+                        }
+                    }
+                }
+
+            
+                for (const [tabId] of this.trackedTabs.entries()) {
+                    if (!tabsToTrack.has(tabId)) {
                         this.endTabSession(tabId);
                     }
                 }
-            } else {
-                this.pauseAllSessions();
+
             }
         } catch (error) {
             console.error('[TimeTracker] Error in trackCurrentState:', error);
@@ -201,6 +232,7 @@ export class TimeTracker {
         try {
             const hostname = new URL(url).hostname;
 
+            if (hostname.includes('music.youtube.com')) return 'YoutubeMusic';
             if (hostname.includes('youtube.com')) return 'YouTube';
             if (hostname.includes('instagram.com')) return 'Instagram';
             if (hostname.includes('facebook.com')) return 'Facebook';
@@ -241,7 +273,9 @@ export class TimeTracker {
 
         await chrome.storage.local.set({ [storageKey]: dailyStats});
 
-        console.log(`Saved entry for ${platform}: ${Math.round(entry.duration || 0) / 1000}s`);
+        // console.log(`Saved entry for ${platform}: ${Math.round(entry.duration || 0) / 1000}s`);
+        console.log(`✅ SAVED to DB: ${platform} +${Math.round(entry.duration || 0) / 1000}s (Total: ${Math.round(dailyStats.totalByPlatform[platform] / 1000)}s)`);
+
     }
 
 
@@ -250,15 +284,39 @@ export class TimeTracker {
     public async getTodayStats(): Promise<DailyStats | null> {
         const today = new Date().toISOString().split('T')[0];
         const storageKey = `stats:${today}`;
-        const result =  await chrome.storage.local.get(storageKey) as Record<string, DailyStats>; //reminder to change this after SQLite
-        return result[storageKey] || null;
+        const result = await chrome.storage.local.get(storageKey) as Record<string, DailyStats>;
+        const savedStats: DailyStats = result[storageKey] || {
+            date: today,
+            entries: [],
+            totalByPlatform: {},
+        };
+
+        const liveStats: DailyStats = {
+            date: savedStats.date,
+            entries: [...savedStats.entries],
+            totalByPlatform: { ...savedStats.totalByPlatform },
+        };
+
+        // Adding currently active sessions 
+        const now = Date.now();
+        for (const [tabId, tracked] of this.trackedTabs.entries()) {
+            const currentDuration = now - tracked.startTime;
+            
+            const platform = tracked.platform;
+            liveStats.totalByPlatform[platform] = 
+                (liveStats.totalByPlatform[platform] || 0) + currentDuration;
+            
+            console.log(`[getTodayStats] Adding live session: ${platform} (tab ${tabId}), +${Math.round(currentDuration / 1000)}s`);
+        }
+
+        return liveStats;
     }
 
 
 
 
     public async getStatsForDate(date: string): Promise<DailyStats | null> {
-        const storageKey = `stats${date}`;
+        const storageKey = `stats:${date}`;
         const result = await chrome.storage.local.get(storageKey) as Record<string, DailyStats>;
         return result[storageKey] || null;
     }
@@ -266,12 +324,12 @@ export class TimeTracker {
 
 
 
-    public async getAllStats(): Promise<DailyStats[] | null> {
+    public async getAllStats(): Promise<DailyStats[]> {
         const allData = await chrome.storage.local.get(null) as Record<string, DailyStats>;
         const stats: DailyStats[] = [];
 
         for (const key in allData) {
-            if(key.startsWith('stats: ')) {
+            if(key.startsWith('stats:')) {
                 stats.push(allData[key]);
             }
         }
