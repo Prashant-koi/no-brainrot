@@ -8,6 +8,7 @@ module.exports = {
     background: './src/background/index.ts',
     content: './src/content/index.ts',
     popup: './src/popup/index.ts',
+    dashboard: './src/dashboard/index.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -31,6 +32,7 @@ module.exports = {
       patterns: [
         { from: 'public', to: '.' },
         { from: 'src/popup/popup.html', to: 'popup.html' },
+        { from: 'src/dashboard/dashboard.html', to: 'dashboard.html' },
       ],
     }),
   ],

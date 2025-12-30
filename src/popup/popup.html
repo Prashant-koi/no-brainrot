@@ -56,6 +56,23 @@
       color: #4ade80;
       margin-top: 8px;
     }
+    .dashboard-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      background: #4ade80;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .dashboard-btn:hover {
+      background: #22c55e;
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -71,6 +88,10 @@
       <div class="total-label">Total Social Media Time</div>
       <div class="total-time" id="total-time">0m</div>
     </div>
+
+    <button class="dashboard-btn" id="open-dashboard">
+      Open Full Dashboard
+    </button>
   </div>
   
   <script src="popup.js"></script>
