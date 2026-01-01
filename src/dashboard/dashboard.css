@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #18181b;
+  color: #f4f4f5;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.stats-card {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.total-time-card {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 20px;
+  border: 2px solid #4ade80;
+  text-align: center;
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 500px;
+  height: 400px;
+  margin: 0 auto;
+  padding: 20px 0;
+  position: relative;
+}
+
+#pieChart {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.refresh-btn {
+  width: 100%;
+  padding: 12px;
+  background: #4ade80;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+  background: #22c55e;
+  transform: translateY(-2px);
+}
