@@ -18,3 +18,8 @@ npm run watch
 #Just build the dist
 npm run build
 ```
+
+## Current Features
+- Short Form Content Blocker (I will probably make a disable/enable button for websites in the dashbpoard)
+- Time Tracking for Social Media/Listed Websites (I will make it so that you can add the websites to the Tracking list in the dashboard)
+- Dashboard which basically displays the overall analystics of your tracked time and history(dashboard will also contain settings soon)
