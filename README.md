@@ -25,4 +25,5 @@ npm run build
 - Dashboard which basically displays the overall analystics of your tracked time and history(dashboard will also contain settings soon)
 
 ## Dashboard
-- Need to Implement the actual tracking and blocker settings (only the clear all data works right now)
+- Need to Implement the blocker settings (only the clear all data works and disable/enable tracking works right now)
+- Need to be able to properly add platforms in tracker settings including proper validation for subdomain
