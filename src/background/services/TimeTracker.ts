@@ -65,6 +65,14 @@ export class TimeTracker {
 
 
 
+    // for the dashboard settings whether to track the site or not
+    private async shouldTrackPlatform(platform: PlatformName): Promise<boolean> {
+        const settingKey = `track-${platform.toLowerCase()}`;
+        const result = await chrome.storage.local.get(settingKey);
+        return result[settingKey] !== false; //this will default to true if it is not set
+    }
+
+
 
     private async trackCurrentState(): Promise<void> {
         try 
@@ -89,7 +97,8 @@ export class TimeTracker {
             const activePlatform = this.getPlatformFromUrl(activeTab.url);
             const isActiveTracked = activePlatform !== 'Other';
             
-            if (isActiveTracked && idleState === 'active') {
+            // we will platform tracking is enabled in the dashboard
+            if (isActiveTracked && idleState === 'active' && await this.shouldTrackPlatform(activePlatform)) {
                 tabsToTrack.add(activeTab.id!);
                 
                 const existing = this.trackedTabs.get(activeTab.id!);
@@ -114,7 +123,7 @@ export class TimeTracker {
                     
                     if (tab.audible && tab.url && tab.id) {
                         const platform = this.getPlatformFromUrl(tab.url);
-                        if (platform !== 'Other') {
+                        if (platform !== 'Other' && await this.shouldTrackPlatform(platform)) {
                             tabsToTrack.add(tab.id);
                             
                             const existing = this.trackedTabs.get(tab.id);
