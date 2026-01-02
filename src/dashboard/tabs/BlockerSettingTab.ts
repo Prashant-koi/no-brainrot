@@ -1,4 +1,4 @@
-import { Tab } from '../index';
+import { Tab } from '../../types/types';
 
 export class BlockerSettingsTab implements Tab {
   render(): string {

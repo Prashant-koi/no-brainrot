@@ -38,3 +38,12 @@ export interface TrackedTab {
 }
 
 //time tracker end
+
+
+//dashboard
+export interface Tab {
+  render(): string;
+  mount(): Promise<void>;
+  unmount(): void;
+}
+//dashbaord end

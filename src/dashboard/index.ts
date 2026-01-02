@@ -2,14 +2,10 @@ import './dashboard.css';
 import { HomeTab } from './tabs/HomeTab';
 import { BlockerSettingsTab } from './tabs/BlockerSettingTab';
 import { TrackerSettingsTab } from './tabs/TrackerSettingTab';
+import { Tab } from '../types/types';
 
 type TabName = 'home' | 'blocker' | 'tracker';
 
-export interface Tab {
-  render(): string;
-  mount(): Promise<void>;
-  unmount(): void;
-}
 
 class Dashboard {
   private currentTab: TabName = 'home';

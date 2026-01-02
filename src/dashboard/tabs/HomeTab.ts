@@ -1,6 +1,5 @@
 import { Chart, ArcElement, Tooltip, Legend, PieController } from 'chart.js';
-import { DailyStats } from '../../types/types';
-import { Tab } from '../index';
+import { DailyStats, Tab } from '../../types/types';
 
 Chart.register(ArcElement, Tooltip, Legend, PieController);
 

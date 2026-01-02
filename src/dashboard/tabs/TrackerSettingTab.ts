@@ -1,4 +1,4 @@
-import { Tab } from '../index';
+import { Tab } from '../../types/types';
 
 export class TrackerSettingsTab implements Tab {
   render(): string {
