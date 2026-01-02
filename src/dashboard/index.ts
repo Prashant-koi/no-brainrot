@@ -1,152 +1,107 @@
 import './dashboard.css';
-import { Chart, ArcElement, Tooltip, Legend, PieController } from 'chart.js';
-import { DailyStats } from '../types/types';
+import { HomeTab } from './tabs/HomeTab';
+import { BlockerSettingsTab } from './tabs/BlockerSettingTab';
+import { TrackerSettingsTab } from './tabs/TrackerSettingTab';
 
-Chart.register(ArcElement, Tooltip, Legend, PieController);
+type TabName = 'home' | 'blocker' | 'tracker';
 
-const app = document.getElementById("app")!;
-
-app.innerHTML = `
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-8">No Brainrot Dashboard</h1>
-    
-    <div class="stats-card mb-6">
-      <h2 class="text-xl font-semibold mb-4">Today's Activity</h2>
-      <div class="total-time-card">
-        <div class="text-sm text-zinc-400">Total Social Media Time</div>
-        <div id="total-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
-      </div>
-    </div>
-
-    <div class="stats-card">
-      <h2 class="text-xl font-semibold mb-4">Time by Platform</h2>
-      <div class="chart-container">
-        <canvas id="pieChart"></canvas>
-      </div>
-    </div>
-
-    <button id="refresh" class="refresh-btn mt-6">
-      Refresh Data
-    </button>
-  </div>
-`;
-
-function formatTime(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`;
-  }
-  return `${minutes}m`;
+export interface Tab {
+  render(): string;
+  mount(): Promise<void>;
+  unmount(): void;
 }
 
-const platformColors: Record<string, string> = {
-  'YouTube': '#FF0000',
-  'YoutubeMusic': '#dda712ff',
-  'Instagram': '#ea6fc1ff',
-  'Facebook': '#1877F2',
-  'TikTok': '#000000',
-};
+class Dashboard {
+  private currentTab: TabName = 'home';
+  private tabs: Map<TabName, Tab>;
 
-let pieChart: Chart | null = null;
+ constructor() {
+    this.tabs = new Map<TabName, Tab>([
+      ['home', new HomeTab()],
+      ['blocker', new BlockerSettingsTab()],
+      ['tracker', new TrackerSettingsTab()],
+    ]);
 
-async function loadData() {
-  const response = await chrome.runtime.sendMessage({ type: 'GET_TODAY_STATS' });
-  const stats: DailyStats | null = response;
 
-  const totalTimeEl = document.getElementById('total-time');
-  if (!totalTimeEl) return;
+    this.renderLayout();
+    this.switchTab('home');
+    this.setupNavigation();
+  }
 
-  if (!stats || Object.keys(stats.totalByPlatform).length === 0) {
-    totalTimeEl.textContent = '0m';
-    if (pieChart) {
-      pieChart.destroy();
-      pieChart = null;
+  private renderLayout(): void {
+    const app = document.getElementById('app')!;
+    app.innerHTML = `
+      <div class="dashboard-container">
+        <nav class="sidebar">
+          <div class="sidebar-header">
+            <h2 class="text-2xl font-bold">No Brainrot</h2>
+          </div>
+          <ul class="nav-menu">
+            <li>
+              <button class="nav-item active" data-tab="home">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                Home
+              </button>
+            </li>
+            <li>
+              <button class="nav-item" data-tab="blocker">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                </svg>
+                Blocker Settings
+              </button>
+            </li>
+            <li>
+              <button class="nav-item" data-tab="tracker">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Tracker Settings
+              </button>
+            </li>
+          </ul>
+        </nav>
+        <main class="main-content" id="main-content">
+          <!-- Tab content will be inserted here -->
+        </main>
+      </div>
+    `;
+  }
+
+  private setupNavigation(): void {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        const tab = (e.currentTarget as HTMLElement).dataset.tab as TabName;
+        this.switchTab(tab);
+      });
+    });
+  }
+
+  private switchTab(tabName: TabName): void {
+    const currentTabInstance = this.tabs.get(this.currentTab);
+    if (currentTabInstance) {
+      currentTabInstance.unmount();
     }
-    return;
+
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+      if ((item as HTMLElement).dataset.tab === tabName) {
+        item.classList.add('active');
+      }
+    });
+
+    // this will render new tab
+    const mainContent = document.getElementById('main-content')!;
+    const newTab = this.tabs.get(tabName)!;
+    mainContent.innerHTML = newTab.render();
+    newTab.mount();
+
+    this.currentTab = tabName;
   }
-
-  
-  const totalMs = Object.values(stats.totalByPlatform).reduce((sum, time) => sum + time, 0);
-  totalTimeEl.textContent = formatTime(totalMs);
-
-  
-  const labels: string[] = [];
-  const data: number[] = [];
-  const colors: string[] = [];
-
-  for (const [platform, timeMs] of Object.entries(stats.totalByPlatform)) {
-    if (platform === 'Other') continue;
-    labels.push(platform);
-    data.push(Math.round(timeMs / 1000 / 60)); // to mins
-    colors.push(platformColors[platform] || '#888888');
-  }
-
-  // Create or update chart
-  const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
-  if (!ctx) return;
-
-  if (pieChart) {
-    pieChart.destroy();
-  }
-
-  pieChart = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: data,
-        backgroundColor: colors,
-        borderColor: '#1a1a1a',
-        borderWidth: 2,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: '#fff',
-            padding: 20,
-            font: {
-              size: 14,
-              family: 'system-ui, -apple-system, sans-serif',
-            },
-          },
-        },
-        tooltip: {
-          backgroundColor: '#2a2a2a',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#4ade80',
-          borderWidth: 1,
-          padding: 12,
-          displayColors: true,
-          callbacks: {
-            label: function(context) {
-              const label = context.label || '';
-              const value = context.parsed || 0;
-              const hours = Math.floor(value / 60);
-              const minutes = value % 60;
-              const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-              return `${label}: ${timeStr}`;
-            },
-          },
-        },
-      },
-    },
-  });
 }
 
-document.getElementById("refresh")?.addEventListener("click", () => {
-  loadData();
-});
-
-loadData();
-
-// 60 sec referesh
-setInterval(loadData, 60000);
+new Dashboard();
