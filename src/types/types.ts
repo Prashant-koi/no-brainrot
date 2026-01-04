@@ -16,9 +16,11 @@ export type BlockerConfig = {
 
 //for Time tracker
 export type PlatformName = 'YouTube' | 'Facebook' | 'Instagram' | 'TikTok' | 'YoutubeMusic';
+export type CustomPlatform = `custom-${string}`;
+export type TrackedPlatform = PlatformName | CustomPlatform;
 
 export interface TimeEntry {
-    platform: PlatformName | 'Other';
+    platform: TrackedPlatform | 'Other';
     startTime: number;
     endTime?: number;
     duration?: number;
@@ -33,7 +35,7 @@ export interface DailyStats {
 // interface to track multiple tabs at once, but only if they're playing audio
 export interface TrackedTab {
     tabId: number;
-    platform: PlatformName;
+    platform: TrackedPlatform;
     startTime: number;
 }
 

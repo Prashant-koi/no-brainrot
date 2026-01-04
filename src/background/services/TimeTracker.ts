@@ -1,4 +1,4 @@
-import { PlatformName, TimeEntry, DailyStats, TrackedTab } from "../../types/types"
+import { PlatformName, TimeEntry, DailyStats, TrackedTab, TrackedPlatform } from "../../types/types"
 
 //code citation thanks to: https://github.com/Stigmatoz/web-activity-time-tracker/blob/master/src/tracker.ts
 
@@ -66,7 +66,7 @@ export class TimeTracker {
 
 
     // for the dashboard settings whether to track the site or not
-    private async shouldTrackPlatform(platform: PlatformName): Promise<boolean> {
+    private async shouldTrackPlatform(platform: TrackedPlatform): Promise<boolean> {
         const settingKey = `track-${platform.toLowerCase()}`;
         const result = await chrome.storage.local.get(settingKey);
         return result[settingKey] !== false; //this will default to true if it is not set
@@ -94,7 +94,7 @@ export class TimeTracker {
             
             const tabsToTrack = new Set<number>();
 
-            const activePlatform = this.getPlatformFromUrl(activeTab.url);
+            const activePlatform = await this.getPlatformFromUrl(activeTab.url);
             const isActiveTracked = activePlatform !== 'Other';
             
             // we will platform tracking is enabled in the dashboard
@@ -122,7 +122,7 @@ export class TimeTracker {
                     if (tab.id === activeTab.id) continue;
                     
                     if (tab.audible && tab.url && tab.id) {
-                        const platform = this.getPlatformFromUrl(tab.url);
+                        const platform = await this.getPlatformFromUrl(tab.url);
                         if (platform !== 'Other' && await this.shouldTrackPlatform(platform)) {
                             tabsToTrack.add(tab.id);
                             
@@ -171,7 +171,7 @@ export class TimeTracker {
             const tab = await chrome.tabs.get(tabId);
             if (!tab.url) return;
 
-            const platform = this.getPlatformFromUrl(tab.url);
+            const platform = await this.getPlatformFromUrl(tab.url);
             const existing = this.trackedTabs.get(tabId);
 
             if (existing && existing.platform !== platform) {
@@ -238,15 +238,26 @@ export class TimeTracker {
 
 
 
-    private getPlatformFromUrl (url: string): PlatformName | 'Other' {
+    private async getPlatformFromUrl(url: string): Promise<TrackedPlatform | 'Other'> {
         try {
-            const hostname = new URL(url).hostname;
+            const hostname = new URL(url).hostname.replace(/^www\./, '');
 
             if (hostname.includes('music.youtube.com')) return 'YoutubeMusic';
             if (hostname.includes('youtube.com')) return 'YouTube';
             if (hostname.includes('instagram.com')) return 'Instagram';
             if (hostname.includes('facebook.com')) return 'Facebook';
             if (hostname.includes('tiktok.com')) return 'TikTok';
+
+            // we will check for custom platforms
+            const result = await chrome.storage.local.get('custom-platforms');
+            const rawCustom = result['custom-platforms'];
+            const customPlatforms: string[] = Array.isArray(rawCustom) ? rawCustom : [];
+            
+            for (const domain of customPlatforms) {
+                if (hostname.includes(domain)) {
+                    return `custom-${domain}`;
+                }
+            }
 
             return 'Other';
         } catch {
