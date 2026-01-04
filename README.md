@@ -26,4 +26,3 @@ npm run build
 
 ## Dashboard
 - Need to Implement the blocker settings (only the clear all data works and disable/enable tracking works right now)
-- Need to be able to properly add platforms in tracker settings including proper validation for subdomain
