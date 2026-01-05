@@ -24,5 +24,6 @@ npm run build
 - Time Tracking for Social Media/Listed Websites (I will make it so that you can add the websites to the Tracking list in the dashboard)
 - Dashboard which basically displays the overall analystics of your tracked time and history(dashboard will also contain settings soon)
 
-## Dashboard
-- Need to Implement the blocker settings (only the clear all data works and disable/enable tracking works right now)
+## To-do
+- I will need to implement an history of the data storage and display that in the dashbaord(planning for the last 30 days)
+- We will also display a maximum time among that 30 days in the dashbaord
