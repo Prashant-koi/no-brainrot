@@ -20,9 +20,9 @@ npm run build
 ```
 
 ## Current Features
-- Short Form Content Blocker (I will probably make a disable/enable button for websites in the dashbpoard)
-- Time Tracking for Social Media/Listed Websites (I will make it so that you can add the websites to the Tracking list in the dashboard)
-- Dashboard which basically displays the overall analystics of your tracked time and history(dashboard will also contain settings soon)
+- Short Form Content Blocker (Can choose to enable/disable in the dashboard)
+- Time Tracking for Social Media/Listed Websites (Can add websites of your own choosing)
+- Dashboard which basically displays the overall analystics of your tracked time and history and settings.
 
 ## To-do
 - I will need to implement an history of the data storage and display that in the dashbaord(planning for the last 30 days)
