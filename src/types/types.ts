@@ -48,4 +48,9 @@ export interface Tab {
   mount(): Promise<void>;
   unmount(): void;
 }
+
+export type ToggleStatus = {
+  label: string;
+  enabled: boolean;
+};
 //dashbaord end

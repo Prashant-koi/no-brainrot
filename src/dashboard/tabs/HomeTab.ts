@@ -1,8 +1,9 @@
 import type { Chart } from 'chart.js';
 import { renderBarChart, renderPieChart } from './home/chartUtils';
 import { getHistorySlice, getMaxTotalMs, getTotalPages, updatePaginationButtons } from './home/historyHelpers';
+import { fetchBlockerStatuses, fetchTrackedStatuses } from './home/settingsHelpers';
 import { formatTime } from './home/timeUtils';
-import { DailyStats, Tab } from '../../types/types';
+import { DailyStats, Tab, ToggleStatus  } from '../../types/types';
 
 export class HomeTab implements Tab {
   private pieChart: Chart | null = null;
@@ -10,6 +11,8 @@ export class HomeTab implements Tab {
   private historyStats: DailyStats[] = [];
   private currentHistoryPage = 0; // 0 = oldest chunk, last = latest chunk
   private readonly pageSize = 10;
+  private blockerStatuses: ToggleStatus[] = [];
+  private trackedStatuses: ToggleStatus[] = [];
 
   private platformColors: Record<string, string> = {
     'YouTube': '#FF0000',
@@ -26,34 +29,46 @@ export class HomeTab implements Tab {
         
         <div class="stats-card mb-6">
           <h2 class="text-xl font-semibold mb-4">Today's Activity</h2>
-          <div style="display:flex; gap:16px; flex-wrap:wrap;">
-            <div class="total-time-card" style="flex:1; min-width:220px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+            <div class="total-time-card">
               <div class="text-sm text-zinc-400">Total Social Media Time</div>
               <div id="total-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
             </div>
-            <div class="total-time-card" style="flex:1; min-width:220px;">
+            <div class="total-time-card">
               <div class="text-sm text-zinc-400">Maximum Time (Last 30 Days)</div>
               <div id="max-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
             </div>
           </div>
         </div>
 
-        <div class="stats-card mb-6">
-          <h2 class="text-xl font-semibold mb-4">Time by Platform (Today)</h2>
-          <div class="chart-container">
-            <canvas id="pieChart"></canvas>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; align-items:stretch;" class="mb-6">
+          <div class="stats-card" style="height:100%;">
+            <h2 class="text-xl font-semibold mb-4">Time by Platform (Today)</h2>
+            <div class="chart-container">
+              <canvas id="pieChart"></canvas>
+            </div>
+          </div>
+          <div class="stats-card" style="height:100%;">
+            <h2 class="text-xl font-semibold mb-4">Currently Blocked</h2>
+            <div id="blocked-list" class="text-sm text-zinc-200" style="min-height:120px;"></div>
           </div>
         </div>
 
-        <div class="stats-card">
-          <h2 class="text-xl font-semibold mb-4">Last 30 Days</h2>
-          <div class="chart-container">
-            <canvas id="barChart"></canvas>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; align-items:stretch;">
+          <div class="stats-card" style="height:100%;">
+            <h2 class="text-xl font-semibold mb-4">Last 30 Days</h2>
+            <div class="chart-container">
+              <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+              <button class="page-btn" data-page="0" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">1</button>
+              <button class="page-btn" data-page="1" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">2</button>
+              <button class="page-btn" data-page="2" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">3</button>
+            </div>
           </div>
-          <div class="chart-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
-            <button class="page-btn" data-page="0" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">1</button>
-            <button class="page-btn" data-page="1" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">2</button>
-            <button class="page-btn" data-page="2" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">3</button>
+          <div class="stats-card" style="height:100%;">
+            <h2 class="text-xl font-semibold mb-4">Currently Tracked</h2>
+            <div id="tracked-list" class="text-sm text-zinc-200" style="min-height:140px;"></div>
           </div>
         </div>
 
@@ -67,10 +82,12 @@ export class HomeTab implements Tab {
   async mount(): Promise<void> {
     await this.loadData();
     await this.loadHistory();
+    await this.loadStatuses();
 
     document.getElementById('refresh')?.addEventListener('click', () => {
       this.loadData();
       this.loadHistory();
+      this.loadStatuses();
     });
 
     document.querySelectorAll('.page-btn').forEach(btn => {
@@ -84,6 +101,7 @@ export class HomeTab implements Tab {
     setInterval(() => {
       this.loadData();
       this.loadHistory();
+      this.loadStatuses();
     }, 60000);
   }
 
@@ -172,5 +190,34 @@ export class HomeTab implements Tab {
     if (el) {
       el.textContent = formatTime(ms);
     }
+  }
+
+  private async loadStatuses(): Promise<void> {
+    const [blockers, tracked] = await Promise.all([
+      fetchBlockerStatuses(),
+      fetchTrackedStatuses(),
+    ]);
+    this.blockerStatuses = blockers;
+    this.trackedStatuses = tracked;
+
+    this.renderStatusList('blocked-list', blockers, 'No blockers enabled');
+    this.renderStatusList('tracked-list', tracked, 'No tracked sites');
+  }
+
+  private renderStatusList(containerId: string, list: ToggleStatus[], emptyText: string): void {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const enabled = list.filter((item) => item.enabled);
+    if (!enabled.length) {
+      container.innerHTML = `<div class="text-sm text-zinc-400">${emptyText}</div>`;
+      return;
+    }
+
+    const pills = enabled
+      .map((item) => `<span style="display:inline-block; padding:6px 10px; margin:4px; background:#27272a; border:1px solid #3f3f46; border-radius:999px;">${item.label}</span>`)
+      .join('');
+
+    container.innerHTML = `<div style="display:flex; flex-wrap:wrap;">${pills}</div>`;
   }
 }

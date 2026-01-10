@@ -1,5 +1,7 @@
 import { Chart, ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement } from 'chart.js';
-
+/* 
+This file has the Pie chart and bar graph code
+*/
 Chart.register(ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement);
 
 export type PieChartInput = {
