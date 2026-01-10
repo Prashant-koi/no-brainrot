@@ -1,7 +1,8 @@
-import { Chart, ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import type { Chart } from 'chart.js';
+import { renderBarChart, renderPieChart } from './home/chartUtils';
+import { getHistorySlice, getMaxTotalMs, getTotalPages, updatePaginationButtons } from './home/historyHelpers';
+import { formatTime } from './home/timeUtils';
 import { DailyStats, Tab } from '../../types/types';
-
-Chart.register(ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement);
 
 export class HomeTab implements Tab {
   private pieChart: Chart | null = null;
@@ -25,9 +26,15 @@ export class HomeTab implements Tab {
         
         <div class="stats-card mb-6">
           <h2 class="text-xl font-semibold mb-4">Today's Activity</h2>
-          <div class="total-time-card">
-            <div class="text-sm text-zinc-400">Total Social Media Time</div>
-            <div id="total-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
+          <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div class="total-time-card" style="flex:1; min-width:220px;">
+              <div class="text-sm text-zinc-400">Total Social Media Time</div>
+              <div id="total-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
+            </div>
+            <div class="total-time-card" style="flex:1; min-width:220px;">
+              <div class="text-sm text-zinc-400">Maximum Time (Last 30 Days)</div>
+              <div id="max-time" class="text-4xl font-bold text-green-400 mt-2">0m</div>
+            </div>
           </div>
         </div>
 
@@ -91,17 +98,6 @@ export class HomeTab implements Tab {
     }
   }
 
-  private formatTime(ms: number): string {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    }
-    return `${minutes}m`;
-  }
-
   private async loadData(): Promise<void> {
     const response = await chrome.runtime.sendMessage({ type: 'GET_TODAY_STATS' });
     const stats: DailyStats | null = response;
@@ -119,7 +115,7 @@ export class HomeTab implements Tab {
     }
 
     const totalMs = Object.values(stats.totalByPlatform).reduce((sum, time) => sum + time, 0);
-    totalTimeEl.textContent = this.formatTime(totalMs);
+    totalTimeEl.textContent = formatTime(totalMs);
 
     const labels: string[] = [];
     const data: number[] = [];
@@ -135,58 +131,7 @@ export class HomeTab implements Tab {
     const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
     if (!ctx) return;
 
-    if (this.pieChart) {
-      this.pieChart.destroy();
-    }
-
-    this.pieChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: data,
-          backgroundColor: colors,
-          borderColor: '#1a1a1a',
-          borderWidth: 2,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#fff',
-              padding: 20,
-              font: {
-                size: 14,
-                family: 'system-ui, -apple-system, sans-serif',
-              },
-            },
-          },
-          tooltip: {
-            backgroundColor: '#2a2a2a',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            borderColor: '#4ade80',
-            borderWidth: 1,
-            padding: 12,
-            displayColors: true,
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                const hours = Math.floor(value / 60);
-                const minutes = value % 60;
-                const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-                return `${label}: ${timeStr}`;
-              },
-            },
-          },
-        },
-      },
-    });
+    this.pieChart = renderPieChart(ctx, this.pieChart, { labels, data, colors });
   }
 
 
@@ -195,95 +140,37 @@ export class HomeTab implements Tab {
     const response = await chrome.runtime.sendMessage({ type: 'GET_LAST_30_DAYS' });
     this.historyStats = response || [];
 
-    const totalPages = this.getTotalPages();
-    // default to latest page
+    const maxMs = getMaxTotalMs(this.historyStats);
+    this.setMaxTimeDisplay(maxMs);
+
+    const totalPages = getTotalPages(this.historyStats, this.pageSize);
+
     this.currentHistoryPage = Math.max(0, totalPages - 1);
     this.renderHistoryPage();
   }
 
   private setHistoryPage(page: number): void {
-    const totalPages = this.getTotalPages();
+    const totalPages = getTotalPages(this.historyStats, this.pageSize);
     if (page < 0 || page >= totalPages) return;
     this.currentHistoryPage = page;
     this.renderHistoryPage();
   }
 
-  private getTotalPages(): number {
-    return Math.max(1, Math.ceil(this.historyStats.length / this.pageSize));
-  }
-
   private renderHistoryPage(): void {
-    const totalPages = this.getTotalPages();
-    const pageFromEnd = totalPages - 1 - this.currentHistoryPage; // page 0 oldest, last = latest
-    const end = this.historyStats.length - pageFromEnd * this.pageSize;
-    const start = Math.max(0, end - this.pageSize);
-    const slice = this.historyStats.slice(start, end);
-
-    const labels: string[] = [];
-    const data: number[] = [];
-
-    slice.forEach(s => {
-      labels.push(s.date.slice(5));
-      const totalMs = Object.values(s.totalByPlatform || {}).reduce((sum, v) => sum + v, 0);
-      data.push(Math.round(totalMs / 1000 / 60)); // minutes
-    });
+    const totalPages = getTotalPages(this.historyStats, this.pageSize);
+    const { labels, data } = getHistorySlice(this.historyStats, this.pageSize, this.currentHistoryPage);
 
     const ctx = document.getElementById('barChart') as HTMLCanvasElement;
     if (!ctx) return;
 
-    if (this.barChart) {
-      this.barChart.destroy();
+    this.barChart = renderBarChart(ctx, this.barChart, labels, data);
+    updatePaginationButtons(this.currentHistoryPage, totalPages);
+  }
+
+  private setMaxTimeDisplay(ms: number): void {
+    const el = document.getElementById('max-time');
+    if (el) {
+      el.textContent = formatTime(ms);
     }
-
-    this.barChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Minutes per day',
-          data,
-          backgroundColor: '#4ade80',
-          borderColor: '#16a34a',
-          borderWidth: 1,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const value = ctx.parsed.y || 0;
-                const hours = Math.floor(value / 60);
-                const minutes = value % 60;
-                return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#e4e4e7' }, grid: { color: '#27272a' } },
-          y: { ticks: { color: '#e4e4e7' }, grid: { color: '#27272a' }, beginAtZero: true }
-        }
-      }
-    });
-
-    // button states for bar graph
-    document.querySelectorAll<HTMLButtonElement>('.page-btn').forEach(btn => {
-      const btnPage = Number(btn.dataset.page);
-      const enabled = btnPage < totalPages;
-      btn.disabled = !enabled;
-      btn.style.opacity = enabled ? '1' : '0.35';
-      btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-      if (btnPage === this.currentHistoryPage) {
-        btn.style.borderColor = '#4ade80';
-        btn.style.color = '#4ade80';
-      } else {
-        btn.style.borderColor = '#52525b';
-        btn.style.color = '#e4e4e7';
-      }
-    });
   }
 }
