@@ -1,10 +1,14 @@
-import { Chart, ArcElement, Tooltip, Legend, PieController } from 'chart.js';
+import { Chart, ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { DailyStats, Tab } from '../../types/types';
 
-Chart.register(ArcElement, Tooltip, Legend, PieController);
+Chart.register(ArcElement, Tooltip, Legend, PieController, BarController, CategoryScale, LinearScale, BarElement);
 
 export class HomeTab implements Tab {
   private pieChart: Chart | null = null;
+  private barChart: Chart | null = null;
+  private historyStats: DailyStats[] = [];
+  private currentHistoryPage = 0; // 0 = oldest chunk, last = latest chunk
+  private readonly pageSize = 10;
 
   private platformColors: Record<string, string> = {
     'YouTube': '#FF0000',
@@ -27,10 +31,22 @@ export class HomeTab implements Tab {
           </div>
         </div>
 
-        <div class="stats-card">
-          <h2 class="text-xl font-semibold mb-4">Time by Platform</h2>
+        <div class="stats-card mb-6">
+          <h2 class="text-xl font-semibold mb-4">Time by Platform (Today)</h2>
           <div class="chart-container">
             <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <h2 class="text-xl font-semibold mb-4">Last 30 Days</h2>
+          <div class="chart-container">
+            <canvas id="barChart"></canvas>
+          </div>
+          <div class="chart-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+            <button class="page-btn" data-page="0" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">1</button>
+            <button class="page-btn" data-page="1" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">2</button>
+            <button class="page-btn" data-page="2" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">3</button>
           </div>
         </div>
 
@@ -43,19 +59,35 @@ export class HomeTab implements Tab {
 
   async mount(): Promise<void> {
     await this.loadData();
-    
+    await this.loadHistory();
+
     document.getElementById('refresh')?.addEventListener('click', () => {
       this.loadData();
+      this.loadHistory();
+    });
+
+    document.querySelectorAll('.page-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const page = Number((e.currentTarget as HTMLElement).dataset.page);
+        this.setHistoryPage(page);
+      });
     });
 
     // Auto-refresh every 60 seconds
-    setInterval(() => this.loadData(), 60000);
+    setInterval(() => {
+      this.loadData();
+      this.loadHistory();
+    }, 60000);
   }
 
   unmount(): void {
     if (this.pieChart) {
       this.pieChart.destroy();
       this.pieChart = null;
+    }
+    if (this.barChart) {
+      this.barChart.destroy();
+      this.barChart = null;
     }
   }
 
@@ -154,6 +186,104 @@ export class HomeTab implements Tab {
           },
         },
       },
+    });
+  }
+
+
+
+  private async loadHistory(): Promise<void> {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_LAST_30_DAYS' });
+    this.historyStats = response || [];
+
+    const totalPages = this.getTotalPages();
+    // default to latest page
+    this.currentHistoryPage = Math.max(0, totalPages - 1);
+    this.renderHistoryPage();
+  }
+
+  private setHistoryPage(page: number): void {
+    const totalPages = this.getTotalPages();
+    if (page < 0 || page >= totalPages) return;
+    this.currentHistoryPage = page;
+    this.renderHistoryPage();
+  }
+
+  private getTotalPages(): number {
+    return Math.max(1, Math.ceil(this.historyStats.length / this.pageSize));
+  }
+
+  private renderHistoryPage(): void {
+    const totalPages = this.getTotalPages();
+    const pageFromEnd = totalPages - 1 - this.currentHistoryPage; // page 0 oldest, last = latest
+    const end = this.historyStats.length - pageFromEnd * this.pageSize;
+    const start = Math.max(0, end - this.pageSize);
+    const slice = this.historyStats.slice(start, end);
+
+    const labels: string[] = [];
+    const data: number[] = [];
+
+    slice.forEach(s => {
+      labels.push(s.date.slice(5));
+      const totalMs = Object.values(s.totalByPlatform || {}).reduce((sum, v) => sum + v, 0);
+      data.push(Math.round(totalMs / 1000 / 60)); // minutes
+    });
+
+    const ctx = document.getElementById('barChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    if (this.barChart) {
+      this.barChart.destroy();
+    }
+
+    this.barChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Minutes per day',
+          data,
+          backgroundColor: '#4ade80',
+          borderColor: '#16a34a',
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed.y || 0;
+                const hours = Math.floor(value / 60);
+                const minutes = value % 60;
+                return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#e4e4e7' }, grid: { color: '#27272a' } },
+          y: { ticks: { color: '#e4e4e7' }, grid: { color: '#27272a' }, beginAtZero: true }
+        }
+      }
+    });
+
+    // button states for bar graph
+    document.querySelectorAll<HTMLButtonElement>('.page-btn').forEach(btn => {
+      const btnPage = Number(btn.dataset.page);
+      const enabled = btnPage < totalPages;
+      btn.disabled = !enabled;
+      btn.style.opacity = enabled ? '1' : '0.35';
+      btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+      if (btnPage === this.currentHistoryPage) {
+        btn.style.borderColor = '#4ade80';
+        btn.style.color = '#4ade80';
+      } else {
+        btn.style.borderColor = '#52525b';
+        btn.style.color = '#e4e4e7';
+      }
     });
   }
 }

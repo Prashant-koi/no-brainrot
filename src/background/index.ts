@@ -20,4 +20,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     timeTracker.getStatsForDate(message.date).then(sendResponse);
     return true;
   }
+
+  if (message.type === 'GET_LAST_30_DAYS') {
+    timeTracker.getLastNDaysStats(30).then(sendResponse);
+    return true;
+  }
 });

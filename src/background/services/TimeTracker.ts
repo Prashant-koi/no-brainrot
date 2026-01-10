@@ -296,12 +296,36 @@ export class TimeTracker {
 
             await chrome.storage.local.set({ [storageKey]: dailyStats});
 
+            // keep only last 30 days
+            await this.pruneOldStats(30);
+
             console.log(`✅ SAVED to DB: ${platform} +${Math.round(entry.duration || 0) / 1000}s (Total: ${Math.round(dailyStats.totalByPlatform[platform] / 1000)}s)`);
         });
 
         await this.saveQueue;
     }
 
+
+
+    private async pruneOldStats(days: number): Promise<void> {
+        const all = await chrome.storage.local.get(null) as Record<string, DailyStats>;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+
+        const toRemove: string[] = [];
+        for (const key of Object.keys(all)) {
+            if (!key.startsWith('stats:')) continue;
+            const dateStr = key.slice('stats:'.length);
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) continue;
+            if (date < cutoff) {
+                toRemove.push(key);
+            }
+        }
+        if (toRemove.length) {
+            await chrome.storage.local.remove(toRemove);
+        }
+    }
 
 
 
@@ -363,6 +387,26 @@ export class TimeTracker {
     }
 
 
+
+    public async getLastNDaysStats(days: number): Promise<DailyStats[]> {
+        const allData = await chrome.storage.local.get(null) as Record<string, DailyStats>;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days + 1); //today included
+
+        const stats: DailyStats[] = [];
+        for (const key in allData) {
+            if (!key.startsWith('stats:')) continue;
+            const dateStr = key.slice('stats:'.length);
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) continue;
+            if (date >= cutoff) {
+                stats.push(allData[key]);
+            }
+        }
+
+        // sort ascending by date
+        return stats.sort((a, b) => a.date.localeCompare(b.date));
+    }
 
 
 
