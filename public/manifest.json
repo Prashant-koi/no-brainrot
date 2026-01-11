@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "No Brainrot",
+  "name": "No Brainrot — Block Short-Form Content & Track Time Online",
   "version": "1.0.0",
-  "description": "Block short-form content (Shorts, Reels, Stories) across social media platforms",
+  "description": "Block short-form content (Shorts, Reels, Stories) across social media platforms and Track Time spent on those platforms",
   "permissions": ["storage","tabs","idle"],
   "background": {
     "service_worker": "background.js"
@@ -35,8 +35,18 @@
       "run_at": "document_start"
     }
   ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "No Brainrot"
+    "default_title": "No Brainrot",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png"
+    }
   }
 }
