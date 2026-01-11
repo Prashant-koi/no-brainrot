@@ -60,11 +60,7 @@ export class HomeTab implements Tab {
             <div class="chart-container">
               <canvas id="barChart"></canvas>
             </div>
-            <div class="chart-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
-              <button class="page-btn" data-page="0" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">1</button>
-              <button class="page-btn" data-page="1" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">2</button>
-              <button class="page-btn" data-page="2" style="padding:6px 10px; background:#3f3f46; color:#e4e4e7; border:1px solid #52525b; border-radius:6px;">3</button>
-            </div>
+            <div id="history-pagination" class="chart-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:8px;"></div>
           </div>
           <div class="stats-card" style="height:100%;">
             <h2 class="text-xl font-semibold mb-4">Currently Tracked</h2>
@@ -89,20 +85,6 @@ export class HomeTab implements Tab {
       this.loadHistory();
       this.loadStatuses();
     });
-
-    document.querySelectorAll('.page-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const page = Number((e.currentTarget as HTMLElement).dataset.page);
-        this.setHistoryPage(page);
-      });
-    });
-
-    // Auto-refresh every 60 seconds
-    setInterval(() => {
-      this.loadData();
-      this.loadHistory();
-      this.loadStatuses();
-    }, 60000);
   }
 
   unmount(): void {
@@ -178,11 +160,33 @@ export class HomeTab implements Tab {
     const totalPages = getTotalPages(this.historyStats, this.pageSize);
     const { labels, data } = getHistorySlice(this.historyStats, this.pageSize, this.currentHistoryPage);
 
+    this.renderPagination(totalPages);
+
     const ctx = document.getElementById('barChart') as HTMLCanvasElement;
     if (!ctx) return;
 
     this.barChart = renderBarChart(ctx, this.barChart, labels, data);
     updatePaginationButtons(this.currentHistoryPage, totalPages);
+  }
+
+  private renderPagination(totalPages: number): void {
+    const container = document.getElementById('history-pagination');
+    if (!container) return;
+
+    container.innerHTML = '';
+    for (let p = 0; p < totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.className = 'page-btn';
+      btn.dataset.page = String(p);
+      btn.textContent = String(p + 1);
+      btn.style.padding = '6px 10px';
+      btn.style.background = '#3f3f46';
+      btn.style.color = '#e4e4e7';
+      btn.style.border = '1px solid #52525b';
+      btn.style.borderRadius = '6px';
+      btn.addEventListener('click', () => this.setHistoryPage(p));
+      container.appendChild(btn);
+    }
   }
 
   private setMaxTimeDisplay(ms: number): void {
