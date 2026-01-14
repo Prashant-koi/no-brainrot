@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "No Brainrot — Block Short-Form Content & Track Time Online",
-  "version": "1.0.0",
+  "version": "0.0.0.1",
   "description": "Block short-form video on YouTube, Instagram, Facebook, and TikTok. Track time across social sites, add your own domains, and review analytics and history in the built-in dashboard.",
   "permissions": ["storage","tabs","idle"],
   "background": {
