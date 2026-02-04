@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 /**
  * Read environment variables from file.
@@ -11,6 +12,10 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+
+const BRAVE_PATH = '/usr/bin/brave';
+const EXTENSION_PATH = path.resolve(__dirname, 'dist');
+
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */
@@ -47,6 +52,25 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+    },
+
+    /**
+     * for brave
+     */
+    {
+      name: 'brave-no-brainrot',
+      use: {
+        ...devices['Desktop Chrome'],
+        headless: false,
+        channel: undefined,
+        launchOptions: {
+          executablePath: BRAVE_PATH,
+          args: [
+            `--disable-extensions-except=&{EXTENSION_PATH}`,
+            `--load-extension=${EXTENSION_PATH}`,
+          ],
+        },
+      },
     },
 
     /* Test against mobile viewports. */

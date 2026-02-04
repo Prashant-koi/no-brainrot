@@ -22,6 +22,12 @@ npm run watch
 npm run build
 ```
 
+## Testing with Playwright
+```
+npx playwright test --project=brave-no-brainrot
+```
+
+
 ## Current Features
 - Short Form Content Blocker (Can choose to enable/disable in the dashboard)
 - Time Tracking for Social Media/Listed Websites (Can add websites of your own choosing)
