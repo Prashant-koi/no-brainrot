@@ -13,6 +13,7 @@
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/cli": "^4.1.18",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/chrome": "^0.1.32",
