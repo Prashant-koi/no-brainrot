@@ -66,7 +66,7 @@ export default defineConfig({
         launchOptions: {
           executablePath: BRAVE_PATH,
           args: [
-            `--disable-extensions-except=&{EXTENSION_PATH}`,
+            `--disable-extensions-except=${EXTENSION_PATH}`,
             `--load-extension=${EXTENSION_PATH}`,
           ],
         },

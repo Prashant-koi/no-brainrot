@@ -1,18 +1,41 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, chromium, BrowserContext, Page } from '@playwright/test';
+import path from 'path';
 
-test('has title', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+test.describe('Extension Tests', () => {
+  let context: BrowserContext | undefined;
+  let page: Page | undefined;
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Playwright/);
-});
+  test.beforeAll(async () => {
+    //we will point to the built extension for the test
+    //need to run 'npm run build' or 'npm run watch' first
+    const pathToExtension = path.join(__dirname, '..','dist');
 
-test('get started link', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+    context = await chromium.launchPersistentContext('', {
+      headless: false,
+      args: [
+        `--disable-extensions-except=${pathToExtension}`,
+        `--load-extension=${pathToExtension}`,
+      ],
+    });
 
-  // Click the get started link.
-  await page.getByRole('link', { name: 'Get started' }).click();
+    // Wait for the extension service worker and derive the ID
+    const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    const extensionId = new URL(sw.url()).hostname;
 
-  // Expects page to have a heading with the name of Installation.
-  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
+    page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  });
+
+  test.afterAll(async () => {
+    if (context) await context.close();
+  });
+
+  //more tests below
+
+  test('renders dashboard shell', async () => {
+    if (!page) throw new Error('page not initialized');
+    await expect(page.getByText('No Brainrot')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Home' })).toBeVisible();
+  });
+
 });
