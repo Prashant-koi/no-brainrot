@@ -76,7 +76,7 @@
   </style>
 </head>
 <body>
-  <h1>No Brainrot</h1>
+  <h1 data-testid="popup-title">No Brainrot</h1>
   
   <div class="stats">
     <h2 style="font-size: 18px; margin-bottom: 12px;">Today's Screen Time</h2>
@@ -86,10 +86,10 @@
     
     <div class="total" id="total-container" style="display: none;">
       <div class="total-label">Total Social Media Time</div>
-      <div class="total-time" id="total-time">0m</div>
+      <div class="total-time" id="total-time" data-testid="popup-analytics-today">0m</div>
     </div>
 
-    <button class="dashboard-btn" id="open-dashboard">
+    <button class="dashboard-btn" id="open-dashboard" data-testid="popup-open-dashboard">
       Open Dashboard For Analytics and Settings
     </button>
   </div>

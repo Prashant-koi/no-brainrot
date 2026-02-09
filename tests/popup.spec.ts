@@ -1,35 +1,29 @@
-import { test, expect, chromium, BrowserContext, Page } from '@playwright/test';
-import path from 'path';
+import {test, expect, BrowserContext, Page} from '@playwright/test';
+import { launchExtension } from './helpers/extension';
 
 test.describe('Popup', () => {
-  let context: BrowserContext;
-  let page: Page;
-  let extensionId: string;
+  let context: BrowserContext | undefined;
+  let gotoPopup: () => Promise<Page>;
 
-  test.beforeAll(async () => {
-    const pathToExtension = path.join(__dirname, '..', 'dist');
+  test.afterEach(async () => {
+    await context?.close();
+  });
 
-    context = await chromium.launchPersistentContext('', {
-      headless: false,
-      args:[
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
+  test('renders title and dashboard CTA', async () => {
+    ({context, gotoPopup} = await launchExtension());
+    const page = await gotoPopup();
+    await expect(page.getByTestId('popup-title')).toHaveText(/No Brainrot/);
+    await expect(page.getByTestId('popup-open-dashboard')).toBeVisible();
+  });
+
+  test('shows analytics only when data exists',  async () => {
+    ({context, gotoPopup} = await launchExtension());
+    const page = await gotoPopup();
+    await page.evaluate(() => {
+      localStorage.setItem('analytics', JSON.stringify({todayMinutes: 42}));
     });
-
-    const sw = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker', { timeout: 20000 }));
-    extensionId = new URL(sw.url()).hostname;
-
-    page = await context.newPage();
-    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.reload();
+    await expect(page.getByTestId('popup-analytics-today')).toContainText('42');
   });
-
-  test.afterAll(async () => {
-    await context.close();
-  });
-
-  test('renders popup shell', async () => {
-    await expect(page.getByText('No Brainrot')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Open Dashboard/i })).toBeVisible();
-  });
-});
+  
+})

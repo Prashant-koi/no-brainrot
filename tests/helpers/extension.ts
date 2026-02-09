@@ -4,11 +4,12 @@ import path from "path";
 import { URL } from "url";
 
 export async function launchExtension() {
-    const pathToExtension = path.join(__dirname, '..', 'dist');
+    // we go back twice since we are in tests/helpers
+    const pathToExtension = path.join(__dirname, '..', '..', 'dist');
     const context = await chromium.launchPersistentContext('', {
         headless: false,
         args: [
-            `disable-extensions-except=${pathToExtension}`,
+            `--disable-extensions-except=${pathToExtension}`,
             `--load-extension=${pathToExtension}`,
         ]
     });

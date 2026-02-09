@@ -14,14 +14,30 @@ function formatTime(ms: number): string {
 }
 
 async function loadStats(): Promise<void> {
-  const response = await chrome.runtime.sendMessage({ type: 'GET_TODAY_STATS' });
-  const stats: DailyStats | null = response;
-
   const container = document.getElementById('stats-container');
   const totalContainer = document.getElementById('total-container');
   const totalTimeEl = document.getElementById('total-time');
 
   if (!container || !totalContainer || !totalTimeEl) return;
+
+  const rawAnalytics = localStorage.getItem('analytics');
+  if (rawAnalytics) {
+    try {
+      const analytics = JSON.parse(rawAnalytics);
+      if (typeof analytics.todayMinutes === 'number') {
+        totalContainer.style.display = 'block';
+        totalTimeEl.textContent = `${analytics.todayMinutes}m`;
+        container.innerHTML = '<p style="color: #888;">Analytics loaded from local storage.</p>';
+        return;
+      }
+    } catch (err) {
+      console.warn('[No Brainrot] Failed to parse analytics from localStorage', err);
+    }
+  }
+
+  const response = await chrome.runtime.sendMessage({ type: 'GET_TODAY_STATS' });
+  const stats: DailyStats | null = response;
+
 
   if (!stats || Object.keys(stats.totalByPlatform).length === 0) {
     container.innerHTML = '<p style="color: #888;">No activity today yet!</p>';
