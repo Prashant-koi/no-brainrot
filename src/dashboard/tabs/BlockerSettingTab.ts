@@ -17,7 +17,7 @@ export class BlockerSettingsTab implements Tab {
                 <div class="setting-desc">Block YouTube Shorts feed and redirects</div>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox" id="youtube-blocker" checked>
+                <input type="checkbox" id="youtube-blocker" data-testid="blocker-toggle" aria-checked="true" checked>
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -67,6 +67,13 @@ export class BlockerSettingsTab implements Tab {
   async mount(): Promise<void> {
     await this.loadSettings();
 
+    ['youtube-blocker','instagram-blocker','facebook-blocker','tiktok-blocker'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', (e) => {
+        const input = e.target as HTMLInputElement;
+        input.setAttribute('aria-checked', input.checked ? 'true' : 'false');
+      });
+    });
+
     document.getElementById('save-blocker-settings')?.addEventListener('click', () => {
       this.saveSettings();
     });
@@ -87,12 +94,16 @@ export class BlockerSettingsTab implements Tab {
     // defult true
     (document.getElementById('youtube-blocker') as HTMLInputElement).checked = 
       settings['youtube-blocker'] !== false;
+    (document.getElementById('youtube-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('youtube-blocker') as HTMLInputElement).checked ? 'true' : 'false');
     (document.getElementById('instagram-blocker') as HTMLInputElement).checked = 
       settings['instagram-blocker'] !== false;
+    (document.getElementById('instagram-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('instagram-blocker') as HTMLInputElement).checked ? 'true' : 'false');
     (document.getElementById('facebook-blocker') as HTMLInputElement).checked = 
       settings['facebook-blocker'] !== false;
+    (document.getElementById('facebook-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('facebook-blocker') as HTMLInputElement).checked ? 'true' : 'false');
     (document.getElementById('tiktok-blocker') as HTMLInputElement).checked = 
       settings['tiktok-blocker'] !== false;
+    (document.getElementById('tiktok-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('tiktok-blocker') as HTMLInputElement).checked ? 'true' : 'false');
   }
 
   private async saveSettings(): Promise<void> {

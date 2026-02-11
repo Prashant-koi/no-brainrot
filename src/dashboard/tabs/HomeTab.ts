@@ -25,7 +25,7 @@ export class HomeTab implements Tab {
   render(): string {
     return `
       <div class="tab-content">
-        <h1 class="text-3xl font-bold mb-8">Home</h1>
+        <h1 class="text-3xl font-bold mb-8" data-testid="home-analytics">Home</h1>
         
         <div class="stats-card mb-6">
           <h2 class="text-xl font-semibold mb-4">Today's Activity</h2>

@@ -30,11 +30,11 @@ class Dashboard {
       <div class="dashboard-container">
         <nav class="sidebar">
           <div class="sidebar-header">
-            <h2 class="text-2xl font-bold">No Brainrot</h2>
+            <h2 class="text-2xl font-bold" data-testid="dashboard-title">No Brainrot</h2>
           </div>
           <ul class="nav-menu">
             <li>
-              <button class="nav-item active" data-tab="home">
+              <button class="nav-item active" data-tab="home" data-testid="tab-home" aria-selected="true">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                 </svg>
@@ -42,7 +42,7 @@ class Dashboard {
               </button>
             </li>
             <li>
-              <button class="nav-item" data-tab="blocker">
+              <button class="nav-item" data-tab="blocker" data-testid="tab-blocker" aria-selected="false">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                 </svg>
@@ -50,7 +50,7 @@ class Dashboard {
               </button>
             </li>
             <li>
-              <button class="nav-item" data-tab="tracker">
+              <button class="nav-item" data-tab="tracker" data-testid="tab-tracker" aria-selected="false">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -85,8 +85,10 @@ class Dashboard {
     // Update active nav item
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.remove('active');
+      item.setAttribute('aria-selected', 'false');
       if ((item as HTMLElement).dataset.tab === tabName) {
         item.classList.add('active');
+        item.setAttribute('aria-selected', 'true');
       }
     });
 
