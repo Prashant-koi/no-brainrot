@@ -68,6 +68,11 @@ export class HomeTab implements Tab {
           </div>
         </div>
 
+        <div class="stats-card mt-6">
+          <h2 class="text-xl font-semibold mb-4">Recent Timeline</h2>
+          <div id="timeline-list" data-testid="timeline-list" class="text-sm text-zinc-200" style="min-height:100px;"></div>
+        </div>
+
         <button id="refresh" class="refresh-btn mt-6">
           Refresh Data
         </button>
@@ -79,11 +84,13 @@ export class HomeTab implements Tab {
     await this.loadData();
     await this.loadHistory();
     await this.loadStatuses();
+    this.renderTimeline();
 
     document.getElementById('refresh')?.addEventListener('click', () => {
       this.loadData();
       this.loadHistory();
       this.loadStatuses();
+      this.renderTimeline();
     });
   }
 
@@ -223,5 +230,36 @@ export class HomeTab implements Tab {
       .join('');
 
     container.innerHTML = `<div style="display:flex; flex-wrap:wrap;">${pills}</div>`;
+  }
+
+  private renderTimeline(): void {
+    const container = document.getElementById('timeline-list');
+    if (!container) return;
+
+    const raw = localStorage.getItem('timeline');
+    let entries: Array<{site: string; minutes: number; ts?: number}> = [];
+    try {
+      entries = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(entries)) entries = [];
+    } catch {
+      entries = [];
+    }
+
+    if (!entries.length) {
+      container.innerHTML = '<div class="text-sm text-zinc-400">No timeline entries yet.</div>';
+      return;
+    }
+
+    container.innerHTML = entries
+      .map(({site, minutes}) => `
+        <div class="setting-item" style="align-items:center;">
+          <div class="setting-info">
+            <div class="setting-name">${site}</div>
+            <div class="setting-desc">Recent activity</div>
+          </div>
+          <div class="setting-name">${minutes}m</div>
+        </div>
+      `)
+      .join('');
   }
 }

@@ -38,6 +38,11 @@ export class TrackerSettingsTab implements Tab {
           </button>
         </div>
 
+        <div class="stats-card mb-6">
+          <h2 class="text-xl font-semibold mb-4">Recent Timeline</h2>
+          <div id="timeline-list" data-testid="timeline-list" class="settings-list" style="min-height:80px;"></div>
+        </div>
+
         <button id="save-tracker-settings" class="refresh-btn">
           Save Settings
         </button>
@@ -47,6 +52,7 @@ export class TrackerSettingsTab implements Tab {
 
   async mount(): Promise<void> {
     await this.loadSettings();
+    this.renderTimeline();
 
     document.getElementById('add-custom-site')?.addEventListener('click', () => {
       this.addCustomSite();
@@ -98,6 +104,7 @@ export class TrackerSettingsTab implements Tab {
 
     this.attachRemoveListeners();
     this.attachToggleListeners();
+    this.renderTimeline();
   }
 
 
@@ -167,6 +174,7 @@ export class TrackerSettingsTab implements Tab {
     await this.loadSettings();
     this.attachRemoveListeners();
     this.attachToggleListeners();
+    this.renderTimeline();
   }
 
 
@@ -192,6 +200,7 @@ export class TrackerSettingsTab implements Tab {
         await this.loadSettings();
         this.attachRemoveListeners();
         this.attachToggleListeners();
+        this.renderTimeline();
       });
     });
   }
@@ -238,6 +247,8 @@ export class TrackerSettingsTab implements Tab {
       }
 
       await chrome.storage.local.remove(keysToRemove);
+      localStorage.removeItem('timeline');
+      this.renderTimeline();
       
       alert('All tracking data has been cleared!');
     }
@@ -252,5 +263,36 @@ export class TrackerSettingsTab implements Tab {
         target.setAttribute('aria-checked', target.checked ? 'true' : 'false');
       });
     });
+  }
+
+  private renderTimeline(): void {
+    const container = document.getElementById('timeline-list');
+    if (!container) return;
+
+    const raw = localStorage.getItem('timeline');
+    let entries: Array<{site: string; minutes: number; ts?: number}> = [];
+    try {
+      entries = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(entries)) entries = [];
+    } catch {
+      entries = [];
+    }
+
+    if (!entries.length) {
+      container.innerHTML = '<div class="setting-desc">No timeline entries yet.</div>';
+      return;
+    }
+
+    container.innerHTML = entries
+      .map(({site, minutes}) => `
+        <div class="setting-item" style="align-items:center;">
+          <div class="setting-info">
+            <div class="setting-name">${site}</div>
+            <div class="setting-desc">Recent activity</div>
+          </div>
+          <div class="setting-name">${minutes}m</div>
+        </div>
+      `)
+      .join('');
   }
   }
