@@ -204,15 +204,16 @@ body {
 }
 
 .toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
   right: 0;
   bottom: 0;
   background-color: #3f3f46;
-  transition: 0.3s;
-  border-radius: 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 24px;
+  opacity: 0.0001; 
+  cursor: pointer;
 }
 
 .toggle-slider:before {

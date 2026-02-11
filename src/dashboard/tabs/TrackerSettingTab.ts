@@ -10,7 +10,7 @@ export class TrackerSettingsTab implements Tab {
           <h2 class="text-xl font-semibold mb-4">Time Tracking</h2>
           <p class="text-zinc-400 mb-6">Configure which platforms to track time for</p>
           
-          <div class="settings-list" id="platforms-list">
+          <div class="settings-list" id="platforms-list" data-testid="tracker-list">
             <!-- Default platforms will be inserted here -->
           </div>
         </div>
@@ -22,9 +22,10 @@ export class TrackerSettingsTab implements Tab {
               type="text" 
               id="custom-domain" 
               placeholder="example.com"
+              data-testid="tracker-add-input"
               style="flex: 1; padding: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #fff; font-size: 14px;"
             />
-            <button id="add-custom-site" class="refresh-btn" style="width: auto; padding: 12px 24px;">
+            <button id="add-custom-site" class="refresh-btn" data-testid="tracker-add-submit" style="width: auto; padding: 12px 24px;">
               Add
             </button>
           </div>
@@ -96,6 +97,7 @@ export class TrackerSettingsTab implements Tab {
     });
 
     this.attachRemoveListeners();
+    this.attachToggleListeners();
   }
 
 
@@ -116,7 +118,7 @@ export class TrackerSettingsTab implements Tab {
             </button>
           ` : ''}
           <label class="toggle-switch">
-            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} ${isCustom ? 'data-testid="tracker-toggle"' : ''} aria-checked="${checked ? 'true' : 'false'}">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -164,6 +166,7 @@ export class TrackerSettingsTab implements Tab {
     input.value = '';
     await this.loadSettings();
     this.attachRemoveListeners();
+    this.attachToggleListeners();
   }
 
 
@@ -188,6 +191,7 @@ export class TrackerSettingsTab implements Tab {
 
         await this.loadSettings();
         this.attachRemoveListeners();
+        this.attachToggleListeners();
       });
     });
   }
@@ -237,4 +241,16 @@ export class TrackerSettingsTab implements Tab {
       
       alert('All tracking data has been cleared!');
     }
+
+
+    
+  private attachToggleListeners(): void {
+    document.querySelectorAll<HTMLInputElement>('#platforms-list input[type="checkbox"]').forEach(input => {
+      input.setAttribute('aria-checked', input.checked ? 'true' : 'false');
+      input.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        target.setAttribute('aria-checked', target.checked ? 'true' : 'false');
+      });
+    });
+  }
   }
