@@ -1,6 +1,5 @@
-import {test, expect, BrowserContext, Page} from '@playwright/test';
+import {test, expect, BrowserContext} from '@playwright/test';
 import { launchExtension } from './helpers/extension';
-import { getDiffieHellman } from 'crypto';
 
 test.describe('Dashboard', () => {
     let context: BrowserContext | undefined;
