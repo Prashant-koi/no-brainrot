@@ -21,6 +21,9 @@ export class TiktokBlocker extends BaseBlocker {
     return "about:blank";
   }
 
+  // Override to prevent BaseBlocker from hiding <body> — we manage the entire page
+  protected blockElements(): void {}
+
   //I will override the Redirect function because the whole tiktok website is blocked
   protected checkAndRedirect(): void {
     if (!document.body) {
@@ -44,6 +47,15 @@ export class TiktokBlocker extends BaseBlocker {
   }
 
   private showBlockScreen(): void {
+    // we need to stop all audio or video playback before blocking the page, discovered this issue while testing the 
+    // tiktok redirect PR
+    document.querySelectorAll("video, audio").forEach((el) => {
+      const media = el as HTMLMediaElement;
+      media.pause();
+      media.src = "";
+      media.load();
+    });
+
     document.body.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background: #000; color: #fff; text-align: center; padding: 20px;">
         <div>
@@ -54,7 +66,9 @@ export class TiktokBlocker extends BaseBlocker {
         </div>
         `;
 
-    document.body.style.overflow = "hidden";
+    // body visible
+    document.body.style.cssText = "display: block !important; visibility: visible !important; overflow: hidden;";
+    document.body.removeAttribute("data-brainrot-blocked");
 
     setTimeout(() => this.checkAndRedirect(), 1000);
   }

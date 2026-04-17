@@ -16,15 +16,29 @@ const chatDomains = [
   "t.me",
 ];
 
+// we need to track when a tab opens another tab (e.g., clicking a link that opens in new tab)
+chrome.webNavigation.onCreatedNavigationTarget.addListener(async (details) => {
+  try {
+    const sourceTab = await chrome.tabs.get(details.sourceTabId);
+    if (!sourceTab.url) return;
+
+    const sourceHost = new URL(sourceTab.url).hostname;
+    const isFromChat = chatDomains.some((d) => sourceHost.includes(d));
+
+    if (isFromChat) {
+      chatOpenedTabs.add(details.tabId);
+      console.log(`[No Brainrot] Tab ${details.tabId} opened from chat domain: ${sourceHost}`);
+    }
+  } catch (e) {
+    // Source tab may have closed
+  }
+});
+
+// we will clear the flag when tab navigates away like when user goes there manually
 chrome.webNavigation.onCommitted.addListener((details) => {
   if (details.frameId !== 0) return;
-
-  const initiator = (details as any).initiator || "";
-  const isFromChat = chatDomains.some((d) => initiator.includes(d));
-
-  if (isFromChat) {
-    chatOpenedTabs.add(details.tabId);
-  } else {
+  // we only clear if it's a user-initiated navigation
+  if (details.transitionType === "typed" || details.transitionType === "auto_bookmark") {
     chatOpenedTabs.delete(details.tabId);
   }
 });
