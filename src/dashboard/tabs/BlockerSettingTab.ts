@@ -1,4 +1,4 @@
-import { Tab } from '../../types/types';
+import { Tab } from "../../types/types";
 
 export class BlockerSettingsTab implements Tab {
   render(): string {
@@ -54,6 +54,17 @@ export class BlockerSettingsTab implements Tab {
                 <span class="toggle-slider"></span>
               </label>
             </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-name">Allow TikTok links from messages</div>
+                <div class="setting-desc">Allow TikTok links shared via Instagram, WhatsApp, Discord, etc.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="allow-redirect-links">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -67,64 +78,95 @@ export class BlockerSettingsTab implements Tab {
   async mount(): Promise<void> {
     await this.loadSettings();
 
-    ['youtube-blocker','instagram-blocker','facebook-blocker','tiktok-blocker'].forEach(id => {
-      document.getElementById(id)?.addEventListener('change', (e) => {
+    [
+      "youtube-blocker",
+      "instagram-blocker",
+      "facebook-blocker",
+      "tiktok-blocker",
+      "allow-redirect-links",
+    ].forEach((id) => {
+      document.getElementById(id)?.addEventListener("change", (e) => {
         const input = e.target as HTMLInputElement;
-        input.setAttribute('aria-checked', input.checked ? 'true' : 'false');
+        input.setAttribute("aria-checked", input.checked ? "true" : "false");
       });
     });
 
-    document.getElementById('save-blocker-settings')?.addEventListener('click', () => {
+    document.getElementById("save-blocker-settings")?.addEventListener("click", () => {
       this.saveSettings();
     });
   }
 
   unmount(): void {
-    // Cleanup 
+    // Cleanup
   }
 
   private async loadSettings(): Promise<void> {
     const settings = await chrome.storage.local.get([
-      'youtube-blocker',
-      'instagram-blocker',
-      'facebook-blocker',
-      'tiktok-blocker',
+      "youtube-blocker",
+      "instagram-blocker",
+      "facebook-blocker",
+      "tiktok-blocker",
+      "allow-redirect-links",
     ]);
 
     // defult true
-    (document.getElementById('youtube-blocker') as HTMLInputElement).checked = 
-      settings['youtube-blocker'] !== false;
-    (document.getElementById('youtube-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('youtube-blocker') as HTMLInputElement).checked ? 'true' : 'false');
-    (document.getElementById('instagram-blocker') as HTMLInputElement).checked = 
-      settings['instagram-blocker'] !== false;
-    (document.getElementById('instagram-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('instagram-blocker') as HTMLInputElement).checked ? 'true' : 'false');
-    (document.getElementById('facebook-blocker') as HTMLInputElement).checked = 
-      settings['facebook-blocker'] !== false;
-    (document.getElementById('facebook-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('facebook-blocker') as HTMLInputElement).checked ? 'true' : 'false');
-    (document.getElementById('tiktok-blocker') as HTMLInputElement).checked = 
-      settings['tiktok-blocker'] !== false;
-    (document.getElementById('tiktok-blocker') as HTMLInputElement).setAttribute('aria-checked', (document.getElementById('tiktok-blocker') as HTMLInputElement).checked ? 'true' : 'false');
+    (document.getElementById("youtube-blocker") as HTMLInputElement).checked =
+      settings["youtube-blocker"] !== false;
+    (document.getElementById("youtube-blocker") as HTMLInputElement).setAttribute(
+      "aria-checked",
+      (document.getElementById("youtube-blocker") as HTMLInputElement).checked ? "true" : "false",
+    );
+    (document.getElementById("instagram-blocker") as HTMLInputElement).checked =
+      settings["instagram-blocker"] !== false;
+    (document.getElementById("instagram-blocker") as HTMLInputElement).setAttribute(
+      "aria-checked",
+      (document.getElementById("instagram-blocker") as HTMLInputElement).checked ? "true" : "false",
+    );
+    (document.getElementById("facebook-blocker") as HTMLInputElement).checked =
+      settings["facebook-blocker"] !== false;
+    (document.getElementById("facebook-blocker") as HTMLInputElement).setAttribute(
+      "aria-checked",
+      (document.getElementById("facebook-blocker") as HTMLInputElement).checked ? "true" : "false",
+    );
+    (document.getElementById("tiktok-blocker") as HTMLInputElement).checked =
+      settings["tiktok-blocker"] !== false;
+    (document.getElementById("tiktok-blocker") as HTMLInputElement).setAttribute(
+      "aria-checked",
+      (document.getElementById("tiktok-blocker") as HTMLInputElement).checked ? "true" : "false",
+    );
+
+    // default false
+    (document.getElementById("allow-redirect-links") as HTMLInputElement).checked =
+      settings["allow-redirect-links"] === true;
+    (document.getElementById("allow-redirect-links") as HTMLInputElement).setAttribute(
+      "aria-checked",
+      (document.getElementById("allow-redirect-links") as HTMLInputElement).checked
+        ? "true"
+        : "false",
+    );
   }
 
   private async saveSettings(): Promise<void> {
     const settings = {
-      'youtube-blocker': (document.getElementById('youtube-blocker') as HTMLInputElement).checked,
-      'instagram-blocker': (document.getElementById('instagram-blocker') as HTMLInputElement).checked,
-      'facebook-blocker': (document.getElementById('facebook-blocker') as HTMLInputElement).checked,
-      'tiktok-blocker': (document.getElementById('tiktok-blocker') as HTMLInputElement).checked,
+      "youtube-blocker": (document.getElementById("youtube-blocker") as HTMLInputElement).checked,
+      "instagram-blocker": (document.getElementById("instagram-blocker") as HTMLInputElement)
+        .checked,
+      "facebook-blocker": (document.getElementById("facebook-blocker") as HTMLInputElement).checked,
+      "tiktok-blocker": (document.getElementById("tiktok-blocker") as HTMLInputElement).checked,
+      "allow-redirect-links": (document.getElementById("allow-redirect-links") as HTMLInputElement)
+        .checked,
     };
 
     await chrome.storage.local.set(settings);
-    
-  
-    const btn = document.getElementById('save-blocker-settings');
+
+    const btn = document.getElementById("save-blocker-settings");
     if (btn) {
       const originalText = btn.textContent;
-      btn.textContent = 'Saved!';
-      btn.style.background = '#22c55e';
+      btn.textContent = "Saved!";
+      btn.style.background = "#22c55e";
       setTimeout(() => {
         btn.textContent = originalText;
-        btn.style.background = '#4ade80';
+        btn.style.background = "#4ade80";
       }, 2000);
     }
   }
