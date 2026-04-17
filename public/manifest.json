@@ -3,7 +3,7 @@
   "name": "No Brainrot — Block Short-Form Content & Track Time Online",
   "version": "0.0.0.1",
   "description": "Block short-form video content. Track time across social sites, add your own domains, and review analytics and history in dashboard.",
-  "permissions": ["storage","tabs","idle"],
+  "permissions": ["storage", "tabs", "idle", "webNavigation"],
   "background": {
     "service_worker": "background.js"
   },
